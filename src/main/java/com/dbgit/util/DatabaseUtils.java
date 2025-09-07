@@ -7,8 +7,8 @@ import java.sql.*;
 
 public class DatabaseUtils {
 
-    public static String buildJdbcUrl(Config.Database db) {
-        return String.format("jdbc:mysql://%s:%d/%s", db.host, db.port, db.name);
+    public static String buildJdbcUrl(Config.Database dbConfig) {
+        return String.format("jdbc:mysql://%s:%d/%s", dbConfig.host, dbConfig.port, dbConfig.name);
     }
 
     public static boolean tableExists(Config.Database dbConfig, String tableName) {
@@ -32,10 +32,10 @@ public class DatabaseUtils {
         return false;
     }
 
-    public static boolean databaseExists(Config.Database db, String newDbName) {
-        String url = buildJdbcUrl(db);
+    public static boolean databaseExists(Config.Database dbConfig, String newDbName) {
+        String url = buildJdbcUrl(dbConfig);
 
-        try (Connection conn = DriverManager.getConnection(url, db.user, db.password)) {
+        try (Connection conn = DriverManager.getConnection(url, dbConfig.user, dbConfig.password)) {
             String sql = "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name = ?";
             try (PreparedStatement stmt = conn.prepareStatement(sql)) {
                 stmt.setString(1, newDbName);
@@ -51,10 +51,11 @@ public class DatabaseUtils {
         return false;
     }
 
-    public static String dumpTableSchema(String jdbcUrl, String user, String password, String tableName) {
+    public static String dumpTableSchema(Config.Database dbConfig, String tableName) {
+        String jdbcUrl = buildJdbcUrl(dbConfig);
         String schemaSql = "";
 
-        try (Connection conn = DriverManager.getConnection(jdbcUrl, user, password);
+        try (Connection conn = DriverManager.getConnection(jdbcUrl, dbConfig.user, dbConfig.password);
              PreparedStatement stmt = conn.prepareStatement("SHOW CREATE TABLE " + tableName);
              ResultSet rs = stmt.executeQuery()) {
 
@@ -69,10 +70,11 @@ public class DatabaseUtils {
         return schemaSql;
     }
 
-    public static String dumpTableData(String jdbcUrl, String user, String password, String tableName) {
+    public static String dumpTableData(Config.Database dbConfig, String tableName) {
+        String jdbcUrl = buildJdbcUrl(dbConfig);
         JSONArray jsonArray = new JSONArray();
 
-        try (Connection conn = DriverManager.getConnection(jdbcUrl, user, password);
+        try (Connection conn = DriverManager.getConnection(jdbcUrl, dbConfig.user, dbConfig.password);
              PreparedStatement stmt = conn.prepareStatement("SELECT * FROM " + tableName);
              ResultSet rs = stmt.executeQuery()) {
 

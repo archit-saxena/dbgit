@@ -26,7 +26,6 @@ public class CommitCommand implements Runnable {
     public void run() {
         try {
             Config config = ConfigUtils.readConfig();
-            String jdbcUrl = DatabaseUtils.buildJdbcUrl(config.database);
 
             List<String> trackedTables = config.tracked_tables;
             String commitId = CommitUtils.generateNextCommitId(config.database.name);
@@ -38,16 +37,15 @@ public class CommitCommand implements Runnable {
             Files.createDirectories(dataDir);
 
             for (String table : trackedTables) {
-                String schemaSql = DatabaseUtils.dumpTableSchema(jdbcUrl, config.database.user, config.database.password, table);
-                String dataJson = DatabaseUtils.dumpTableData(jdbcUrl, config.database.user, config.database.password, table);
+                String schemaSql = DatabaseUtils.dumpTableSchema(config.database, table);
+                String dataJson = DatabaseUtils.dumpTableData(config.database, table);
 
                 Files.writeString(schemaDir.resolve(table + ".sql"), schemaSql);
                 Files.writeString(dataDir.resolve(table + ".json"), dataJson);
             }
 
             CommitUtils.saveCommitMetadata(commitDir, message);
-
-            System.out.println("✅ Commit created: " + commitId);
+            System.out.println("Commit created: " + commitId);
 
         } catch (Exception e) {
             throw new RuntimeException("Commit failed: " + e.getMessage(), e);

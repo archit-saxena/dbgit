@@ -49,7 +49,7 @@ public class InitCommand implements Runnable {
 
         try {
             if (Files.exists(root)) {
-                System.out.println("⚠️  .dbgit already exists in this directory.");
+                System.out.println(".dbgit already exists in this directory.");
                 return;
             }
 
@@ -78,7 +78,7 @@ public class InitCommand implements Runnable {
             Path configFile = root.resolve("config.yaml");
             Files.writeString(configFile, configContent);
 
-            System.out.println("✅ Initialized dbgit repository for database: " + dbName);
+            System.out.println(":* Initialized dbgit repository for database: " + dbName);
         } catch (IOException e) {
             throw new RuntimeException("Failed to initialize dbgit repository", e);
         }

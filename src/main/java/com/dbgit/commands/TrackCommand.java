@@ -38,16 +38,15 @@ public class TrackCommand {
                 if (DatabaseUtils.tableExists(
                         config.database, table)) {
                     tracked.add(table);
-                    System.out.println("✅ Added: " + table);
+                    System.out.println(";) Added: " + table);
                 } else {
-                    System.out.println("⚠️  Table not found in DB, skipped: " + table);
+                    System.out.println("XD Table not found in DB, skipped: " + table);
                 }
             }
-
             config.tracked_tables = new ArrayList<>(tracked);
             ConfigUtils.writeConfig(config);
 
-            System.out.println("📌 Final tracked tables: " + config.tracked_tables);
+            System.out.println(":D Final tracked tables: " + config.tracked_tables);
         }
 
     }
@@ -62,22 +61,22 @@ public class TrackCommand {
             Config config = ConfigUtils.readConfig();
             Set<String> tracked = new HashSet<>(config.tracked_tables);
             tracked.removeAll(tables);
-            config.tracked_tables = new ArrayList<>(tracked);  // ✅ fixed here
+            config.tracked_tables = new ArrayList<>(tracked);
             ConfigUtils.writeConfig(config);
 
-            System.out.println("✅ Tracked tables after removal: " + config.tracked_tables);
+            System.out.println(":C Tracked tables after removal: " + config.tracked_tables);
         }
     }
 
     @Command(name = "list", description = "List currently tracked tables.")
-    public static class ListTracked implements Runnable {  // ✅ renamed class
+    public static class ListTracked implements Runnable {
         @Override
         public void run() {
             Config config = ConfigUtils.readConfig();
             if (config.tracked_tables.isEmpty()) {
-                System.out.println("ℹ️ No tables are currently tracked.");
+                System.out.println(" :C No tables are currently tracked.");
             } else {
-                System.out.println("Tracked tables:");
+                System.out.println(":D Tracked tables:");
                 config.tracked_tables.forEach(t -> System.out.println(" - " + t));
             }
         }

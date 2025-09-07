@@ -8,3 +8,4 @@ com\dbgit\model\Config.class
 com\dbgit\commands\TrackCommand.class
 com\dbgit\model\Config$Database.class
 com\dbgit\util\DatabaseUtils.class
+com\dbgit\commands\ChangeDBNameCommand.class

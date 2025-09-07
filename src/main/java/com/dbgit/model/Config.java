@@ -8,7 +8,9 @@ public class Config {
     public List<String> tracked_tables = new ArrayList<>();
 
     public static class Database {
-        public String url;
+        public String host;
+        public int port;
+        public String name;
         public String user;
         public String password;
     }

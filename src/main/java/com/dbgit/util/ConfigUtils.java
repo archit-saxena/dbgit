@@ -45,7 +45,9 @@ public class ConfigUtils {
             // Convert Config object to a plain Map<String, Object>
             Map<String, Object> data = new LinkedHashMap<>();
             Map<String, Object> db = new LinkedHashMap<>();
-            db.put("url", config.database.url);
+            db.put("host", config.database.host);
+            db.put("port", config.database.port);
+            db.put("name", config.database.name);
             db.put("user", config.database.user);
             db.put("password", config.database.password);
 

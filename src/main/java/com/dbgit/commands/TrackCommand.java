@@ -36,7 +36,7 @@ public class TrackCommand {
 
             for (String table : tables) {
                 if (DatabaseUtils.tableExists(
-                        config.database.url, config.database.user, config.database.password, table)) {
+                        config.database, table)) {
                     tracked.add(table);
                     System.out.println("✅ Added: " + table);
                 } else {

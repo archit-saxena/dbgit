@@ -4,6 +4,7 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import com.dbgit.commands.InitCommand;
 import com.dbgit.commands.TrackCommand;
+import com.dbgit.commands.ChangeDBNameCommand;
 
 @Command(
         name = "dbgit",
@@ -11,7 +12,8 @@ import com.dbgit.commands.TrackCommand;
         version = { "dbgit 0.1.0" },
         description = "Git-like CLI for MySQL (commit/diff/revert).",
         subcommands = { InitCommand.class,
-                        TrackCommand.class
+                        TrackCommand.class,
+                        ChangeDBNameCommand.class
         }
 )
 public class Main implements Runnable {

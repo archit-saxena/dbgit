@@ -65,12 +65,14 @@ public class InitCommand implements Runnable {
             // config.yaml content
             String configContent = String.format("""
                 database:
-                  url: %s
+                  host: %s
+                  port: %d
+                  name: %s
                   user: %s
                   password: %s
 
                 tracked_tables: []
-                """, jdbcUrl, user, password);
+                """, host, port, dbName, user, password);
 
             // write config.yaml
             Path configFile = root.resolve("config.yaml");

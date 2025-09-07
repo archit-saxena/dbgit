@@ -1,7 +1,9 @@
 E:\Downloads\dbgit\src\main\java\com\dbgit\util\ConfigUtils.java
 E:\Downloads\dbgit\src\main\java\com\dbgit\commands\InitCommand.java
 E:\Downloads\dbgit\src\main\java\com\dbgit\model\Config.java
+E:\Downloads\dbgit\src\main\java\com\dbgit\util\CommitUtils.java
 E:\Downloads\dbgit\src\main\java\com\dbgit\commands\TrackCommand.java
 E:\Downloads\dbgit\src\main\java\com\dbgit\Main.java
 E:\Downloads\dbgit\src\main\java\com\dbgit\commands\ChangeDBNameCommand.java
+E:\Downloads\dbgit\src\main\java\com\dbgit\commands\CommitCommand.java
 E:\Downloads\dbgit\src\main\java\com\dbgit\util\DatabaseUtils.java

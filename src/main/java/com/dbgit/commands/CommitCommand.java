@@ -1,0 +1,56 @@
+package com.dbgit.commands;
+
+import picocli.CommandLine;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Parameters;
+import picocli.CommandLine.Option;
+import com.dbgit.model.Config;
+import com.dbgit.util.ConfigUtils;
+import com.dbgit.util.DatabaseUtils;
+import com.dbgit.util.CommitUtils;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+import java.io.IOException;
+
+
+@Command(name = "commit", description = "Snapshot schema and data of tracked tables")
+public class CommitCommand implements Runnable {
+
+    @Option(names = {"-m", "--message"}, description = "Commit message", required = true)
+    String message;
+
+    @Override
+    public void run() {
+        try {
+            Config config = ConfigUtils.readConfig();
+            String jdbcUrl = DatabaseUtils.buildJdbcUrl(config.database);
+
+            List<String> trackedTables = config.tracked_tables;
+            String commitId = CommitUtils.generateNextCommitId(config.database.name);
+            Path commitDir = Paths.get(".dbgit/commits", config.database.name, commitId + "_" + CommitUtils.sanitizeMessage(message));
+            Path schemaDir = commitDir.resolve("schema");
+            Path dataDir = commitDir.resolve("data");
+
+            Files.createDirectories(schemaDir);
+            Files.createDirectories(dataDir);
+
+            for (String table : trackedTables) {
+                String schemaSql = DatabaseUtils.dumpTableSchema(jdbcUrl, config.database.user, config.database.password, table);
+                String dataJson = DatabaseUtils.dumpTableData(jdbcUrl, config.database.user, config.database.password, table);
+
+                Files.writeString(schemaDir.resolve(table + ".sql"), schemaSql);
+                Files.writeString(dataDir.resolve(table + ".json"), dataJson);
+            }
+
+            CommitUtils.saveCommitMetadata(commitDir, message);
+
+            System.out.println("✅ Commit created: " + commitId);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Commit failed: " + e.getMessage(), e);
+        }
+    }
+}

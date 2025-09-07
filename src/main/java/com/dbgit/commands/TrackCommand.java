@@ -5,6 +5,7 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 import com.dbgit.model.Config;
 import com.dbgit.util.ConfigUtils;
+import com.dbgit.util.DatabaseUtils;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -30,13 +31,25 @@ public class TrackCommand {
         @Override
         public void run() {
             Config config = ConfigUtils.readConfig();
+
             Set<String> tracked = new HashSet<>(config.tracked_tables);
-            tracked.addAll(tables);
+
+            for (String table : tables) {
+                if (DatabaseUtils.tableExists(
+                        config.database.url, config.database.user, config.database.password, table)) {
+                    tracked.add(table);
+                    System.out.println("✅ Added: " + table);
+                } else {
+                    System.out.println("⚠️  Table not found in DB, skipped: " + table);
+                }
+            }
+
             config.tracked_tables = new ArrayList<>(tracked);
             ConfigUtils.writeConfig(config);
 
-            System.out.println("✅ Tracked tables: " + config.tracked_tables);
+            System.out.println("📌 Final tracked tables: " + config.tracked_tables);
         }
+
     }
 
     @Command(name = "remove", description = "Remove tables from tracked list.")

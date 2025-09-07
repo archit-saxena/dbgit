@@ -9,6 +9,8 @@
 .dbgit/commits/
 .dbgit/schema/
 .dbgit/data/
+.dbgit/refs/
+
 
 # Local config
 .dbgit/config.yaml

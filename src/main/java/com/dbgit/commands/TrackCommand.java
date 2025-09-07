@@ -6,7 +6,7 @@ import picocli.CommandLine.Parameters;
 import com.dbgit.model.Config;
 import com.dbgit.util.ConfigUtils;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -14,7 +14,11 @@ import java.util.Set;
 @Command(
         name = "track",
         description = "Manage tracked tables.",
-        subcommands = {TrackCommand.Add.class, TrackCommand.Remove.class, TrackCommand.List.class}
+        subcommands = {
+                TrackCommand.Add.class,
+                TrackCommand.Remove.class,
+                TrackCommand.ListTracked.class
+        }
 )
 public class TrackCommand {
 
@@ -28,7 +32,7 @@ public class TrackCommand {
             Config config = ConfigUtils.readConfig();
             Set<String> tracked = new HashSet<>(config.tracked_tables);
             tracked.addAll(tables);
-            config.tracked_tables = List.copyOf(tracked);
+            config.tracked_tables = new ArrayList<>(tracked);
             ConfigUtils.writeConfig(config);
 
             System.out.println("✅ Tracked tables: " + config.tracked_tables);
@@ -45,7 +49,7 @@ public class TrackCommand {
             Config config = ConfigUtils.readConfig();
             Set<String> tracked = new HashSet<>(config.tracked_tables);
             tracked.removeAll(tables);
-            config.tracked_tables = List.copyOf(tracked);
+            config.tracked_tables = new ArrayList<>(tracked);  // ✅ fixed here
             ConfigUtils.writeConfig(config);
 
             System.out.println("✅ Tracked tables after removal: " + config.tracked_tables);
@@ -53,7 +57,7 @@ public class TrackCommand {
     }
 
     @Command(name = "list", description = "List currently tracked tables.")
-    public static class List implements Runnable {
+    public static class ListTracked implements Runnable {  // ✅ renamed class
         @Override
         public void run() {
             Config config = ConfigUtils.readConfig();

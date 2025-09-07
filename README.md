@@ -15,7 +15,7 @@ It supports **tracking tables**, **snapshotting database state (commit)**, and l
 Initializes the `.dbgit/` folder and creates a configuration file.
 
 ```bash
-java -jar dbgit.jar init
+java -jar dbgit.jar init --db <db_name>
 ```
 
 This command creates a `.dbgit/` directory in the current working directory, containing:
@@ -27,10 +27,10 @@ This command creates a `.dbgit/` directory in the current working directory, con
 
 | Option                  | Description                 | Default   |
 | ----------------------- | --------------------------- | --------- |
-| `--db <db_name>`        | Database name to connect to | N/A       |
+| `--db <db_name>`        | Database name to connect to | **Required**       |
 | `--host <host>`         | Database host               | localhost |
-| `--user <username>`     | Database username           | N/A       |
-| `--password <password>` | Database password           | N/A       |
+| `--user <username>`     | Database username           | root       |
+| `--password <password>` | Database password           |        |
 | `--port <port>`         | Database port               | 3306      |
 
 ---

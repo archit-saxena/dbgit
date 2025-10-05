@@ -1,24 +1,24 @@
 package com.dbgit.util;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
-import org.json.JSONArray;
-import org.json.JSONObject;
-import com.dbgit.util.ConfigUtils;
+import com.dbgit.model.Config;
 
 public class DiffUtils {
 
     public static void diff(String commitId1, String commitId2, boolean schemaOnly, boolean dataOnly) throws IOException {
-        String dbName = ConfigUtils.getActiveDatabase();
-
-        Path commit1Dir = Paths.get(".dbgit/commits", dbName, getCommitFolder(commitId1));
-        Path commit2Dir = Paths.get(".dbgit/commits", dbName, getCommitFolder(commitId2));
+        String db = ConfigUtils.getActiveDatabase();
+        Path commit1Dir = Paths.get(".dbgit/commits", db, CommitUtils.getCommitDir(commitId1).getFileName().toString());
+        Path commit2Dir = Paths.get(".dbgit/commits", db, CommitUtils.getCommitDir(commitId2).getFileName().toString());
 
         if (!Files.exists(commit1Dir) || !Files.exists(commit2Dir))
             throw new RuntimeException("One or both commits not found");
 
-        List<String> trackedTables = ConfigUtils.readConfig().tracked_tables;
+        List<String> trackedTables = Config.getInstance().tracked_tables;
         boolean differencesFound = false;
 
         for (String table : trackedTables) {
@@ -47,14 +47,11 @@ public class DiffUtils {
             System.out.println("No differences between commits " + commitId1 + " and " + commitId2);
     }
 
-    // -------------------- Utilities --------------------
-
     private static String normalizeJson(String jsonStr) {
         try {
             JSONArray arr = new JSONArray(jsonStr);
             List<JSONObject> list = new ArrayList<>();
-            for (int i = 0; i < arr.length(); i++)
-                list.add(arr.getJSONObject(i));
+            for (int i = 0; i < arr.length(); i++) list.add(arr.getJSONObject(i));
             list.sort(Comparator.comparing(JSONObject::toString));
             return list.toString();
         } catch (Exception e) {
@@ -63,73 +60,44 @@ public class DiffUtils {
     }
 
     private static void showLineDiff(String oldText, String newText) {
-        String[] oldLines = oldText.split("\n");
-        String[] newLines = newText.split("\n");
+        Set<String> oldSet = new HashSet<>();
+        Set<String> newSet = new HashSet<>();
+
+        for (String line : oldText.split("\n")) if (!line.contains("AUTO_INCREMENT")) oldSet.add(line);
+        for (String line : newText.split("\n")) if (!line.contains("AUTO_INCREMENT")) newSet.add(line);
+
+        for (String line : oldSet) if (!newSet.contains(line)) System.out.println("- " + line);
+        for (String line : newSet) if (!oldSet.contains(line)) System.out.println("+ " + line);
+    }
+
+    private static void showJsonDiff(String oldJson, String newJson) {
+        JSONArray oldArr = new JSONArray(oldJson);
+        JSONArray newArr = new JSONArray(newJson);
 
         Set<String> oldSet = new HashSet<>();
         Set<String> newSet = new HashSet<>();
 
-        for (String line : oldLines) {
-            if (!line.contains("AUTO_INCREMENT"))
-                oldSet.add(line);
+        for (int i = 0; i < oldArr.length(); i++) oldSet.add(oldArr.getJSONObject(i).toString());
+        for (int i = 0; i < newArr.length(); i++) newSet.add(newArr.getJSONObject(i).toString());
+
+        Set<String> added = new HashSet<>(newSet);
+        added.removeAll(oldSet);
+
+        Set<String> removed = new HashSet<>(oldSet);
+        removed.removeAll(newSet);
+
+        if (!removed.isEmpty()) {
+            System.out.println(removed.size() + " row(s) deleted:");
+            for (String row : removed) System.out.println("- " + prettyJson(new JSONObject(row)));
         }
 
-        for (String line : newLines) {
-            if (!line.contains("AUTO_INCREMENT"))
-                newSet.add(line);
+        if (!added.isEmpty()) {
+            System.out.println(added.size() + " row(s) added:");
+            for (String row : added) System.out.println("+ " + prettyJson(new JSONObject(row)));
         }
 
-        for (String line : oldSet)
-            if (!newSet.contains(line))
-                System.out.println("- " + line);
-        for (String line : newSet)
-            if (!oldSet.contains(line))
-                System.out.println("+ " + line);
-    }
-
-
-    private static void showJsonDiff(String oldJson, String newJson) {
-        try {
-            JSONArray oldArr = new JSONArray(oldJson);
-            JSONArray newArr = new JSONArray(newJson);
-
-            Set<String> oldSet = new HashSet<>();
-            Set<String> newSet = new HashSet<>();
-
-            for (int i = 0; i < oldArr.length(); i++)
-                oldSet.add(oldArr.getJSONObject(i).toString());
-            for (int i = 0; i < newArr.length(); i++)
-                newSet.add(newArr.getJSONObject(i).toString());
-
-            // compute added and removed rows
-            Set<String> added = new HashSet<>(newSet);
-            added.removeAll(oldSet);
-
-            Set<String> removed = new HashSet<>(oldSet);
-            removed.removeAll(newSet);
-
-            if (!removed.isEmpty()) {
-                System.out.println(removed.size() + " row(s) deleted:");
-                for (String row : removed) {
-                    JSONObject obj = new JSONObject(row);
-                    System.out.println("- " + prettyJson(obj));
-                }
-            }
-
-            if (!added.isEmpty()) {
-                System.out.println(added.size() + " row(s) added:");
-                for (String row : added) {
-                    JSONObject obj = new JSONObject(row);
-                    System.out.println("+ " + prettyJson(obj));
-                }
-            }
-
-            if (added.isEmpty() && removed.isEmpty()) {
-                System.out.println("No data differences found.");
-            }
-
-        } catch (Exception e) {
-            System.out.println("Failed to diff JSON: " + e.getMessage());
+        if (added.isEmpty() && removed.isEmpty()) {
+            System.out.println("No data differences found.");
         }
     }
 
@@ -144,19 +112,5 @@ public class DiffUtils {
         }
         sb.append(" }");
         return sb.toString();
-    }
-
-    private static String getCommitFolder(String commitId) throws IOException {
-        String dbName = ConfigUtils.getActiveDatabase();
-        Path commitsDir = Paths.get(".dbgit/commits", dbName);
-        if (!Files.exists(commitsDir))
-            throw new RuntimeException("No commits found for database: " + dbName);
-
-        try (var paths = Files.list(commitsDir)) {
-            return paths.map(p -> p.getFileName().toString())
-                    .filter(name -> name.startsWith(commitId))
-                    .findFirst()
-                    .orElseThrow(() -> new RuntimeException("Commit folder not found for: " + commitId));
-        }
     }
 }

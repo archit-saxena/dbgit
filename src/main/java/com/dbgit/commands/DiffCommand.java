@@ -32,7 +32,6 @@ public class DiffCommand implements Runnable {
             String commit2 = commits.size() == 2 ? commits.get(1) : HeadUtils.getHead();
 
             DiffUtils.diff(commit1, commit2, schemaOnly, dataOnly);
-
         } catch (Exception e) {
             System.err.println("[X] Diff failed: " + e.getMessage());
         }

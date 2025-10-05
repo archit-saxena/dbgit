@@ -1,47 +1,31 @@
 package com.dbgit.util;
 
 import com.dbgit.model.Config;
-import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.representer.Representer;
-
+import java.nio.file.*;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-
-import java.util.Map;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class ConfigUtils {
 
     private static final Path CONFIG_PATH = Path.of(".dbgit/config.yaml");
-    private static final Yaml yaml;
-
-    static {
-        DumperOptions options = new DumperOptions();
-        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-        yaml = new Yaml(options);
-    }
+    private static final Yaml yaml = new Yaml();
 
     public static Config.Database getDatabaseConfig() {
-        Config config = readConfig();
-        if (config.database == null) {
-            throw new RuntimeException("Database configuration not found in config.yaml");
-        }
-        return config.database;
+        return Config.getInstance().database;
     }
 
-    public static java.util.List<String> getTrackedTables() {
-        Config config = readConfig();
-        return config.tracked_tables;
+    public static List<String> getTrackedTables() {
+        return Config.getInstance().tracked_tables;
     }
 
     public static String getActiveDatabase() {
-        Config config = readConfig();
-        if (config.database == null || config.database.name == null || config.database.name.isEmpty()) {
+        Config.Database db = getDatabaseConfig();
+        if (db.name == null || db.name.isEmpty())
             throw new RuntimeException("Active database not set in config.yaml");
-        }
-        return config.database.name;
+        return db.name;
     }
 
     public static Config readConfig() {
@@ -55,32 +39,22 @@ public class ConfigUtils {
 
     public static void writeConfig(Config config) {
         try {
-            DumperOptions options = new DumperOptions();
-            options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-
-            Representer representer = new Representer(options);
-            representer.getPropertyUtils().setSkipMissingProperties(true);
-
-            Yaml yaml = new Yaml(representer, options);
-
-            // Convert Config object to a plain Map<String, Object>
             Map<String, Object> data = new LinkedHashMap<>();
-            Map<String, Object> db = new LinkedHashMap<>();
-            db.put("host", config.database.host);
-            db.put("port", config.database.port);
-            db.put("name", config.database.name);
-            db.put("user", config.database.user);
-            db.put("password", config.database.password);
+            Map<String, Object> dbMap = new LinkedHashMap<>();
+            dbMap.put("host", config.database.host);
+            dbMap.put("port", config.database.port);
+            dbMap.put("name", config.database.name);
+            dbMap.put("user", config.database.user);
+            dbMap.put("password", config.database.password);
 
-            data.put("database", db);
+            data.put("database", dbMap);
             data.put("tracked_tables", config.tracked_tables);
 
-            String yamlContent = yaml.dump(data);
-            Files.writeString(CONFIG_PATH, yamlContent);
+            Files.writeString(CONFIG_PATH, yaml.dump(data));
 
+            Config.reload(); // sync singleton
         } catch (IOException e) {
             throw new RuntimeException("Failed to write config.yaml", e);
         }
     }
-
 }

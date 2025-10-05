@@ -2,6 +2,7 @@ package com.dbgit.commands;
 
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
+import com.dbgit.model.Config;
 
 import java.io.IOException;
 import java.nio.file.*;
@@ -12,35 +13,19 @@ import java.nio.file.*;
 )
 public class InitCommand implements Runnable {
 
-    @Option(
-            names = {"--db"},
-            description = "Database name to track (required).",
-            required = true
-    )
+    @Option(names = {"--db"}, description = "Database name to track (required).", required = true)
     private String dbName;
 
-    @Option(
-            names = {"--user"},
-            description = "Database username (default: root)."
-    )
+    @Option(names = {"--user"}, description = "Database username (default: root).")
     private String user = "root";
 
-    @Option(
-            names = {"--password"},
-            description = "Database password (default: empty)."
-    )
+    @Option(names = {"--password"}, description = "Database password (default: empty).")
     private String password = "";
 
-    @Option(
-            names = {"--host"},
-            description = "MySQL host (default: localhost)."
-    )
+    @Option(names = {"--host"}, description = "MySQL host (default: localhost).")
     private String host = "localhost";
 
-    @Option(
-            names = {"--port"},
-            description = "MySQL port (default: 3306)."
-    )
+    @Option(names = {"--port"}, description = "MySQL port (default: 3306).")
     private int port = 3306;
 
     @Override
@@ -53,30 +38,22 @@ public class InitCommand implements Runnable {
                 return;
             }
 
-            // create directories
             Files.createDirectories(root.resolve("commits"));
             Files.createDirectories(root.resolve("schema"));
             Files.createDirectories(root.resolve("data"));
             Files.createDirectories(root.resolve("refs"));
 
-            // build JDBC URL
-            String jdbcUrl = String.format("jdbc:mysql://%s:%d/%s", host, port, dbName);
+            // Set singleton config
+            Config cfg = Config.getInstance();
+            cfg.database.host = host;
+            cfg.database.port = port;
+            cfg.database.name = dbName;
+            cfg.database.user = user;
+            cfg.database.password = password;
+            cfg.tracked_tables.clear();
 
-            // config.yaml content
-            String configContent = String.format("""
-                database:
-                  host: %s
-                  port: %d
-                  name: %s
-                  user: %s
-                  password: %s
-
-                tracked_tables: []
-                """, host, port, dbName, user, password);
-
-            // write config.yaml
-            Path configFile = root.resolve("config.yaml");
-            Files.writeString(configFile, configContent);
+            // Write config to disk
+            com.dbgit.util.ConfigUtils.writeConfig(cfg);
 
             System.out.println(":* Initialized dbgit repository for database: " + dbName);
         } catch (IOException e) {

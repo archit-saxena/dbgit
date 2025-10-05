@@ -26,11 +26,11 @@ public class RestoreCommand implements Runnable {
     @Override
     public void run() {
         try {
-            Config config = ConfigUtils.readConfig();
+            Config cfg = Config.getInstance();
             Path commitDir = CommitUtils.getCommitDir(commitId);
             Path schemaDir = commitDir.resolve("schema");
             Path dataDir = commitDir.resolve("data");
-            List<String> trackedTables = config.tracked_tables;
+            List<String> trackedTables = cfg.tracked_tables;
 
             if (trackedTables.isEmpty()) {
                 System.out.println("[!] No tables are tracked. Nothing to revert.");
@@ -38,12 +38,11 @@ public class RestoreCommand implements Runnable {
             }
 
             if (!force) {
-                System.out.println("⚠ You are about to revert the following tables to commit " + commitId + ":");
+                System.out.println("Reverting tables to commit " + commitId + ":");
                 trackedTables.forEach(t -> System.out.println(" - " + t));
                 System.out.print("Proceed? (yes/no): ");
                 Scanner scanner = new Scanner(System.in);
-                String input = scanner.nextLine().trim().toLowerCase();
-                if (!input.equals("yes")) {
+                if (!scanner.nextLine().trim().equalsIgnoreCase("yes")) {
                     System.out.println("[X] Restore aborted.");
                     return;
                 }
@@ -58,20 +57,13 @@ public class RestoreCommand implements Runnable {
                     continue;
                 }
 
-                String schemaSql = Files.readString(schemaFile);
-                String dataJson = Files.readString(dataFile);
-
-                System.out.println("Restoring table: " + table);
-
-                DatabaseUtils.restoreSchema(table, schemaSql);
-                DatabaseUtils.restoreData(table, dataJson);
+                DatabaseUtils.restoreSchema(table, Files.readString(schemaFile));
+                DatabaseUtils.restoreData(table, Files.readString(dataFile));
+                System.out.println("Restored table: " + table);
             }
 
-            System.out.println("Database successfully reverted to commit " + commitId);
             HeadUtils.updateHead(commitId);
-            System.out.println("Database successfully reverted to commit " + commitId
-                    + " (HEAD updated for " + ConfigUtils.getActiveDatabase() + ")");
-
+            System.out.println("Database successfully reverted to commit " + commitId);
         } catch (Exception e) {
             throw new RuntimeException("Restore failed: " + e.getMessage(), e);
         }

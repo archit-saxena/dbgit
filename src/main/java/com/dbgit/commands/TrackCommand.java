@@ -4,13 +4,9 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 import com.dbgit.model.Config;
-import com.dbgit.util.ConfigUtils;
 import com.dbgit.util.DatabaseUtils;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Command(
         name = "track",
@@ -30,9 +26,8 @@ public class TrackCommand {
 
         @Override
         public void run() {
-            Config config = ConfigUtils.readConfig();
-
-            Set<String> tracked = new HashSet<>(config.tracked_tables);
+            Config cfg = Config.getInstance();
+            Set<String> tracked = new HashSet<>(cfg.tracked_tables);
 
             for (String table : tables) {
                 if (DatabaseUtils.tableExists(table)) {
@@ -42,12 +37,9 @@ public class TrackCommand {
                     System.out.println("XD Table not found in DB, skipped: " + table);
                 }
             }
-            config.tracked_tables = new ArrayList<>(tracked);
-            ConfigUtils.writeConfig(config);
-
-            System.out.println(":D Final tracked tables: " + config.tracked_tables);
+            cfg.tracked_tables = new ArrayList<>(tracked);
+            com.dbgit.util.ConfigUtils.writeConfig(cfg);
         }
-
     }
 
     @Command(name = "remove", description = "Remove tables from tracked list.")
@@ -57,27 +49,20 @@ public class TrackCommand {
 
         @Override
         public void run() {
-            Config config = ConfigUtils.readConfig();
-            Set<String> tracked = new HashSet<>(config.tracked_tables);
-            tracked.removeAll(tables);
-            config.tracked_tables = new ArrayList<>(tracked);
-            ConfigUtils.writeConfig(config);
-
-            System.out.println(":C Tracked tables after removal: " + config.tracked_tables);
+            Config cfg = Config.getInstance();
+            cfg.tracked_tables.removeAll(tables);
+            com.dbgit.util.ConfigUtils.writeConfig(cfg);
+            tables.forEach(t -> System.out.println("Removed: " + t));
         }
     }
 
-    @Command(name = "list", description = "List currently tracked tables.")
+    @Command(name = "list", description = "List all tracked tables.")
     public static class ListTracked implements Runnable {
         @Override
         public void run() {
-            Config config = ConfigUtils.readConfig();
-            if (config.tracked_tables.isEmpty()) {
-                System.out.println(" :C No tables are currently tracked.");
-            } else {
-                System.out.println(":D Tracked tables:");
-                config.tracked_tables.forEach(t -> System.out.println(" - " + t));
-            }
+            Config cfg = Config.getInstance();
+            if (cfg.tracked_tables.isEmpty()) System.out.println("No tables are currently tracked.");
+            else cfg.tracked_tables.forEach(t -> System.out.println("- " + t));
         }
     }
 }

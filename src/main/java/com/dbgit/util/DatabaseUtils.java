@@ -1,156 +1,114 @@
 package com.dbgit.util;
 
-import com.dbgit.model.Config;
-import org.json.JSONObject;
 import org.json.JSONArray;
+import org.json.JSONObject;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+import com.dbgit.model.Config;
 
 public class DatabaseUtils {
 
     public static String buildJdbcUrl() {
-        Config.Database dbConfig = ConfigUtils.getDatabaseConfig();
-        return String.format("jdbc:mysql://%s:%d/%s", dbConfig.host, dbConfig.port, dbConfig.name);
+        Config.Database db = ConfigUtils.getDatabaseConfig();
+        return String.format("jdbc:mysql://%s:%d/%s", db.host, db.port, db.name);
+    }
+
+    public static Connection getConnection() throws SQLException {
+        Config.Database db = ConfigUtils.getDatabaseConfig();
+        return DriverManager.getConnection(buildJdbcUrl(), db.user, db.password);
     }
 
     public static boolean tableExists(String tableName) {
-        Config.Database dbConfig = ConfigUtils.getDatabaseConfig();
-        String jdbcUrl = buildJdbcUrl();
-        try (Connection conn = DriverManager.getConnection(jdbcUrl, dbConfig.user, dbConfig.password)) {
-            String dbName = dbConfig.name;
-            String sql = "SELECT COUNT(*) FROM information_schema.tables " +
-                    "WHERE table_schema = ? AND table_name = ?";
-            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-                stmt.setString(1, dbName);
-                stmt.setString(2, tableName);
-                try (ResultSet rs = stmt.executeQuery()) {
-                    if (rs.next()) {
-                        return rs.getInt(1) > 0;
-                    }
-                }
+        Config.Database db = ConfigUtils.getDatabaseConfig();
+        String sql = "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = ? AND table_name = ?";
+
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, db.name);
+            stmt.setString(2, tableName);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next() && rs.getInt(1) > 0;
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Database connection error: " + e.getMessage(), e);
+            throw new RuntimeException("Database error: " + e.getMessage(), e);
         }
-        return false;
     }
 
-    public static boolean databaseExists(String newDbName) {
-        Config.Database dbConfig = ConfigUtils.getDatabaseConfig();
-        String url = buildJdbcUrl();
+    public static boolean databaseExists(String dbName) {
+        Config.Database db = ConfigUtils.getDatabaseConfig();
+        String sql = "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name = ?";
 
-        try (Connection conn = DriverManager.getConnection(url, dbConfig.user, dbConfig.password)) {
-            String sql = "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name = ?";
-            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-                stmt.setString(1, newDbName);
-                try (ResultSet rs = stmt.executeQuery()) {
-                    if (rs.next()) {
-                        return rs.getInt(1) > 0;
-                    }
-                }
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, dbName);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next() && rs.getInt(1) > 0;
             }
         } catch (SQLException e) {
-            throw new RuntimeException("DB connection failed: " + e.getMessage(), e);
+            throw new RuntimeException("Database error: " + e.getMessage(), e);
         }
-        return false;
     }
 
     public static String dumpTableSchema(String tableName) {
-        Config.Database dbConfig = ConfigUtils.getDatabaseConfig();
-        String jdbcUrl = buildJdbcUrl();
-        String schemaSql = "";
-
-        try (Connection conn = DriverManager.getConnection(jdbcUrl, dbConfig.user, dbConfig.password);
-             PreparedStatement stmt = conn.prepareStatement("SHOW CREATE TABLE " + tableName);
-             ResultSet rs = stmt.executeQuery()) {
-
-            if (rs.next()) {
-                schemaSql = rs.getString(2);  // Second column has the full CREATE TABLE statement
-            }
-
+        String schema = "";
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement("SHOW CREATE TABLE " + tableName); ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) schema = rs.getString(2);
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to dump schema for table: " + tableName, e);
+            throw new RuntimeException("Failed to dump schema for table " + tableName, e);
         }
-        return schemaSql;
+        return schema;
     }
 
     public static String dumpTableData(String tableName) {
-        Config.Database dbConfig = ConfigUtils.getDatabaseConfig();
-        String jdbcUrl = buildJdbcUrl();
-        JSONArray jsonArray = new JSONArray();
-
-        try (Connection conn = DriverManager.getConnection(jdbcUrl, dbConfig.user, dbConfig.password);
-             PreparedStatement stmt = conn.prepareStatement("SELECT * FROM " + tableName);
-             ResultSet rs = stmt.executeQuery()) {
-
-            ResultSetMetaData metaData = rs.getMetaData();
-            int columnCount = metaData.getColumnCount();
-
+        JSONArray array = new JSONArray();
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement("SELECT * FROM " + tableName); ResultSet rs = stmt.executeQuery()) {
+            ResultSetMetaData meta = rs.getMetaData();
+            int colCount = meta.getColumnCount();
             while (rs.next()) {
-                JSONObject row = new JSONObject();
-                for (int i = 1; i <= columnCount; i++) {
-                    String column = metaData.getColumnLabel(i);
-                    Object value = rs.getObject(i);
-                    row.put(column, value);
+                JSONObject obj = new JSONObject();
+                for (int i = 1; i <= colCount; i++) {
+                    obj.put(meta.getColumnLabel(i), rs.getObject(i));
                 }
-                jsonArray.put(row);
+                array.put(obj);
             }
-
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to dump data for table: " + tableName, e);
+            throw new RuntimeException("Failed to dump data for table " + tableName, e);
         }
-
-        return jsonArray.toString(2);  // Pretty-print with 2-space indentation
+        return array.toString(2);
     }
 
-    public static void restoreSchema(String tableName, String sql) {
-        Config.Database dbConfig = ConfigUtils.getDatabaseConfig();
-        String url = buildJdbcUrl();
-        try (Connection conn = DriverManager.getConnection(url, dbConfig.user, dbConfig.password);
-             Statement stmt = conn.createStatement()) {
-
-            stmt.execute("SET FOREIGN_KEY_CHECKS=0");       // Disable FKs
-            stmt.execute("DROP TABLE IF EXISTS " + tableName); // Drop table if exists
-            stmt.execute(sql);                              // Recreate table
-            stmt.execute("SET FOREIGN_KEY_CHECKS=1");      // Re-enable FKs
-
+    public static void restoreSchema(String table, String sql) {
+        try (Connection conn = getConnection(); Statement stmt = conn.createStatement()) {
+            stmt.execute("SET FOREIGN_KEY_CHECKS=0");
+            stmt.execute("DROP TABLE IF EXISTS " + table);
+            stmt.execute(sql);
+            stmt.execute("SET FOREIGN_KEY_CHECKS=1");
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to restore schema for table " + tableName + ": " + e.getMessage(), e);
+            throw new RuntimeException("Failed to restore schema for table " + table, e);
         }
     }
 
     public static void restoreData(String table, String jsonData) {
-        Config.Database dbConfig = ConfigUtils.getDatabaseConfig();
-        String url = buildJdbcUrl();
         JSONArray rows = new JSONArray(jsonData);
-
-        try (Connection conn = DriverManager.getConnection(url, dbConfig.user, dbConfig.password)) {
+        try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
-
             for (int i = 0; i < rows.length(); i++) {
                 JSONObject row = rows.getJSONObject(i);
                 StringBuilder cols = new StringBuilder();
                 StringBuilder vals = new StringBuilder();
-
                 for (String key : row.keySet()) {
                     cols.append(key).append(",");
                     vals.append("?,");
                 }
-
-                String sql = "INSERT INTO " + table +
-                        "(" + cols.substring(0, cols.length() - 1) + ") " +
-                        "VALUES (" + vals.substring(0, vals.length() - 1) + ")";
-
-                try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                String sql = "INSERT INTO " + table + "(" + cols.substring(0, cols.length() - 1) + ") VALUES (" + vals.substring(0, vals.length() - 1) + ")";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
                     int idx = 1;
-                    for (String key : row.keySet()) {
-                        pstmt.setObject(idx++, row.get(key));
-                    }
-                    pstmt.executeUpdate();
+                    for (String key : row.keySet()) ps.setObject(idx++, row.get(key));
+                    ps.executeUpdate();
                 }
             }
             conn.commit();
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to restore data for table " + table + ": " + e.getMessage(), e);
+            throw new RuntimeException("Failed to restore data for table " + table, e);
         }
     }
 }

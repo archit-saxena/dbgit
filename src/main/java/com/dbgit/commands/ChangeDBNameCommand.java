@@ -1,11 +1,10 @@
 package com.dbgit.commands;
 
-import picocli.CommandLine;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
 import com.dbgit.model.Config;
-import com.dbgit.util.ConfigUtils;
 import com.dbgit.util.DatabaseUtils;
+import com.dbgit.util.ConfigUtils;
 
 @Command(name = "change-db", description = "Change the database in config.yaml")
 public class ChangeDBNameCommand implements Runnable {
@@ -15,7 +14,7 @@ public class ChangeDBNameCommand implements Runnable {
 
     @Override
     public void run() {
-        Config config = ConfigUtils.readConfig();
+        Config cfg = Config.getInstance();
 
         // Check if new database exists
         if (!DatabaseUtils.databaseExists(newDbName)) {
@@ -24,8 +23,9 @@ public class ChangeDBNameCommand implements Runnable {
         }
 
         // Update config
-        config.database.name = newDbName;
-        ConfigUtils.writeConfig(config);
+        cfg.database.name = newDbName;
+        ConfigUtils.writeConfig(cfg);
+
         System.out.println("[S] Database changed to: " + newDbName);
     }
 }

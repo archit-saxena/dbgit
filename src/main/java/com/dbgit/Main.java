@@ -8,6 +8,7 @@ import com.dbgit.commands.ChangeDBNameCommand;
 import com.dbgit.commands.CommitCommand;
 import com.dbgit.commands.RestoreCommand;
 import com.dbgit.commands.LogCommand;
+import com.dbgit.commands.DiffCommand;
 
 @Command(
         name = "dbgit",
@@ -19,7 +20,8 @@ import com.dbgit.commands.LogCommand;
                         ChangeDBNameCommand.class,
                         CommitCommand.class,
                         RestoreCommand.class,
-                        LogCommand.class
+                        LogCommand.class,
+                        DiffCommand.class
         }
 )
 public class Main implements Runnable {

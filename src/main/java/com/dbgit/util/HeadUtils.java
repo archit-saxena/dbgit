@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.LinkedHashMap;
 
-public class HEADUtils {
+public class HeadUtils {
 
     private static final Path HEAD_FILE = Paths.get(".dbgit/HEAD");
     private static final Yaml yaml = new Yaml();

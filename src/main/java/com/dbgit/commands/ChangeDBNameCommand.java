@@ -18,7 +18,7 @@ public class ChangeDBNameCommand implements Runnable {
         Config config = ConfigUtils.readConfig();
 
         // Check if new database exists
-        if (!DatabaseUtils.databaseExists(config.database, newDbName)) {
+        if (!DatabaseUtils.databaseExists(newDbName)) {
             System.out.println("[X] Database does not exist: " + newDbName);
             return;
         }

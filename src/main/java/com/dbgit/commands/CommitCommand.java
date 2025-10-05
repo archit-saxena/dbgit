@@ -8,7 +8,7 @@ import com.dbgit.model.Config;
 import com.dbgit.util.ConfigUtils;
 import com.dbgit.util.DatabaseUtils;
 import com.dbgit.util.CommitUtils;
-import com.dbgit.util.HEADUtils;
+import com.dbgit.util.HeadUtils;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,7 +29,7 @@ public class CommitCommand implements Runnable {
             Config config = ConfigUtils.readConfig();
 
             List<String> trackedTables = config.tracked_tables;
-            String commitId = CommitUtils.generateNextCommitId(config.database.name);
+            String commitId = CommitUtils.generateNextCommitId();
             Path commitDir = Paths.get(".dbgit/commits", config.database.name, commitId + "_" + CommitUtils.sanitizeMessage(message));
             Path schemaDir = commitDir.resolve("schema");
             Path dataDir = commitDir.resolve("data");
@@ -38,8 +38,8 @@ public class CommitCommand implements Runnable {
             Files.createDirectories(dataDir);
 
             for (String table : trackedTables) {
-                String schemaSql = DatabaseUtils.dumpTableSchema(config.database, table);
-                String dataJson = DatabaseUtils.dumpTableData(config.database, table);
+                String schemaSql = DatabaseUtils.dumpTableSchema(table);
+                String dataJson = DatabaseUtils.dumpTableData(table);
 
                 Files.writeString(schemaDir.resolve(table + ".sql"), schemaSql);
                 Files.writeString(dataDir.resolve(table + ".json"), dataJson);
@@ -47,7 +47,7 @@ public class CommitCommand implements Runnable {
 
             CommitUtils.saveCommitMetadata(commitDir, message);
             System.out.println("Commit created: " + commitId);
-            HEADUtils.updateHead(commitId);
+            HeadUtils.updateHead(commitId);
             System.out.println("Commit created: " + commitId + " (HEAD updated for "
                     + ConfigUtils.getActiveDatabase() + ")");
 

@@ -7,7 +7,7 @@ import com.dbgit.model.Config;
 import com.dbgit.util.ConfigUtils;
 import com.dbgit.util.CommitUtils;
 import com.dbgit.util.DatabaseUtils;
-import com.dbgit.util.HEADUtils;
+import com.dbgit.util.HeadUtils;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,7 +27,7 @@ public class RestoreCommand implements Runnable {
     public void run() {
         try {
             Config config = ConfigUtils.readConfig();
-            Path commitDir = CommitUtils.getCommitDir(config.database.name, commitId);
+            Path commitDir = CommitUtils.getCommitDir(commitId);
             Path schemaDir = commitDir.resolve("schema");
             Path dataDir = commitDir.resolve("data");
             List<String> trackedTables = config.tracked_tables;
@@ -44,7 +44,7 @@ public class RestoreCommand implements Runnable {
                 Scanner scanner = new Scanner(System.in);
                 String input = scanner.nextLine().trim().toLowerCase();
                 if (!input.equals("yes")) {
-                    System.out.println("❌ Restore aborted.");
+                    System.out.println("[X] Restore aborted.");
                     return;
                 }
             }
@@ -61,14 +61,14 @@ public class RestoreCommand implements Runnable {
                 String schemaSql = Files.readString(schemaFile);
                 String dataJson = Files.readString(dataFile);
 
-                System.out.println("↻ Restoring table: " + table);
+                System.out.println("Restoring table: " + table);
 
-                DatabaseUtils.restoreSchema(config.database, table, schemaSql);
-                DatabaseUtils.restoreData(config.database, table, dataJson);
+                DatabaseUtils.restoreSchema(table, schemaSql);
+                DatabaseUtils.restoreData(table, dataJson);
             }
 
-            System.out.println("✅ Database successfully reverted to commit " + commitId);
-            HEADUtils.updateHead(commitId);
+            System.out.println("Database successfully reverted to commit " + commitId);
+            HeadUtils.updateHead(commitId);
             System.out.println("Database successfully reverted to commit " + commitId
                     + " (HEAD updated for " + ConfigUtils.getActiveDatabase() + ")");
 

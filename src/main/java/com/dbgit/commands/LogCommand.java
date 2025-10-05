@@ -3,7 +3,7 @@ package com.dbgit.commands;
 import picocli.CommandLine.Command;
 import com.dbgit.model.Config;
 import com.dbgit.util.ConfigUtils;
-import com.dbgit.util.HEADUtils;
+import com.dbgit.util.HeadUtils;
 
 import java.nio.file.*;
 import java.util.Comparator;
@@ -56,7 +56,7 @@ public class LogCommand implements Runnable {
                             }
 
                             // Mark HEAD
-                            String head = HEADUtils.getHead();
+                            String head = HeadUtils.getHead();
                             String headMarker = commitId.equals(head) ? " <- HEAD" : "";
 
                             System.out.printf("%s - %s (%s)%s%n", commitId, message, timestamp, headMarker);

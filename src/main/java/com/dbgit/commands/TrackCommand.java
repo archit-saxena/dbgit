@@ -35,8 +35,7 @@ public class TrackCommand {
             Set<String> tracked = new HashSet<>(config.tracked_tables);
 
             for (String table : tables) {
-                if (DatabaseUtils.tableExists(
-                        config.database, table)) {
+                if (DatabaseUtils.tableExists(table)) {
                     tracked.add(table);
                     System.out.println(";) Added: " + table);
                 } else {

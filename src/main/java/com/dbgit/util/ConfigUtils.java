@@ -23,6 +23,19 @@ public class ConfigUtils {
         yaml = new Yaml(options);
     }
 
+    public static Config.Database getDatabaseConfig() {
+        Config config = readConfig();
+        if (config.database == null) {
+            throw new RuntimeException("Database configuration not found in config.yaml");
+        }
+        return config.database;
+    }
+
+    public static java.util.List<String> getTrackedTables() {
+        Config config = readConfig();
+        return config.tracked_tables;
+    }
+
     public static String getActiveDatabase() {
         Config config = readConfig();
         if (config.database == null || config.database.name == null || config.database.name.isEmpty()) {

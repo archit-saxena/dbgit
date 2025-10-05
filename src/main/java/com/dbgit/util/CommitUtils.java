@@ -11,7 +11,8 @@ import org.yaml.snakeyaml.Yaml;
 
 public class CommitUtils {
 
-    public static String generateNextCommitId(String dbName) {
+    public static String generateNextCommitId() {
+        String dbName = ConfigUtils.getActiveDatabase();
         Path commitsDir = Paths.get(".dbgit/commits", dbName);
 
         try {
@@ -53,7 +54,8 @@ public class CommitUtils {
                 .replaceAll("_+", "_");  // Avoid multiple consecutive underscores
     }
 
-    public static Path getCommitDir(String dbName, String commitId) {
+    public static Path getCommitDir(String commitId) {
+        String dbName = ConfigUtils.getActiveDatabase();
         Path dbCommitsDir = Paths.get(".dbgit/commits", dbName);
 
         try {
@@ -66,5 +68,4 @@ public class CommitUtils {
             throw new RuntimeException("Failed to locate commit directory: " + e.getMessage(), e);
         }
     }
-
 }

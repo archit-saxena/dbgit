@@ -7,12 +7,14 @@ import java.sql.*;
 
 public class DatabaseUtils {
 
-    public static String buildJdbcUrl(Config.Database dbConfig) {
+    public static String buildJdbcUrl() {
+        Config.Database dbConfig = ConfigUtils.getDatabaseConfig();
         return String.format("jdbc:mysql://%s:%d/%s", dbConfig.host, dbConfig.port, dbConfig.name);
     }
 
-    public static boolean tableExists(Config.Database dbConfig, String tableName) {
-        String jdbcUrl = buildJdbcUrl(dbConfig);
+    public static boolean tableExists(String tableName) {
+        Config.Database dbConfig = ConfigUtils.getDatabaseConfig();
+        String jdbcUrl = buildJdbcUrl();
         try (Connection conn = DriverManager.getConnection(jdbcUrl, dbConfig.user, dbConfig.password)) {
             String dbName = dbConfig.name;
             String sql = "SELECT COUNT(*) FROM information_schema.tables " +
@@ -32,8 +34,9 @@ public class DatabaseUtils {
         return false;
     }
 
-    public static boolean databaseExists(Config.Database dbConfig, String newDbName) {
-        String url = buildJdbcUrl(dbConfig);
+    public static boolean databaseExists(String newDbName) {
+        Config.Database dbConfig = ConfigUtils.getDatabaseConfig();
+        String url = buildJdbcUrl();
 
         try (Connection conn = DriverManager.getConnection(url, dbConfig.user, dbConfig.password)) {
             String sql = "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name = ?";
@@ -51,8 +54,9 @@ public class DatabaseUtils {
         return false;
     }
 
-    public static String dumpTableSchema(Config.Database dbConfig, String tableName) {
-        String jdbcUrl = buildJdbcUrl(dbConfig);
+    public static String dumpTableSchema(String tableName) {
+        Config.Database dbConfig = ConfigUtils.getDatabaseConfig();
+        String jdbcUrl = buildJdbcUrl();
         String schemaSql = "";
 
         try (Connection conn = DriverManager.getConnection(jdbcUrl, dbConfig.user, dbConfig.password);
@@ -66,12 +70,12 @@ public class DatabaseUtils {
         } catch (SQLException e) {
             throw new RuntimeException("Failed to dump schema for table: " + tableName, e);
         }
-
         return schemaSql;
     }
 
-    public static String dumpTableData(Config.Database dbConfig, String tableName) {
-        String jdbcUrl = buildJdbcUrl(dbConfig);
+    public static String dumpTableData(String tableName) {
+        Config.Database dbConfig = ConfigUtils.getDatabaseConfig();
+        String jdbcUrl = buildJdbcUrl();
         JSONArray jsonArray = new JSONArray();
 
         try (Connection conn = DriverManager.getConnection(jdbcUrl, dbConfig.user, dbConfig.password);
@@ -98,9 +102,10 @@ public class DatabaseUtils {
         return jsonArray.toString(2);  // Pretty-print with 2-space indentation
     }
 
-    public static void restoreSchema(Config.Database db, String tableName, String sql) {
-        String url = buildJdbcUrl(db);
-        try (Connection conn = DriverManager.getConnection(url, db.user, db.password);
+    public static void restoreSchema(String tableName, String sql) {
+        Config.Database dbConfig = ConfigUtils.getDatabaseConfig();
+        String url = buildJdbcUrl();
+        try (Connection conn = DriverManager.getConnection(url, dbConfig.user, dbConfig.password);
              Statement stmt = conn.createStatement()) {
 
             stmt.execute("SET FOREIGN_KEY_CHECKS=0");       // Disable FKs
@@ -113,11 +118,12 @@ public class DatabaseUtils {
         }
     }
 
-    public static void restoreData(Config.Database db, String table, String jsonData) {
-        String url = buildJdbcUrl(db);
+    public static void restoreData(String table, String jsonData) {
+        Config.Database dbConfig = ConfigUtils.getDatabaseConfig();
+        String url = buildJdbcUrl();
         JSONArray rows = new JSONArray(jsonData);
 
-        try (Connection conn = DriverManager.getConnection(url, db.user, db.password)) {
+        try (Connection conn = DriverManager.getConnection(url, dbConfig.user, dbConfig.password)) {
             conn.setAutoCommit(false);
 
             for (int i = 0; i < rows.length(); i++) {
@@ -142,11 +148,9 @@ public class DatabaseUtils {
                     pstmt.executeUpdate();
                 }
             }
-
             conn.commit();
         } catch (SQLException e) {
             throw new RuntimeException("Failed to restore data for table " + table + ": " + e.getMessage(), e);
         }
     }
-
 }

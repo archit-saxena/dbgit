@@ -8,6 +8,7 @@ import com.dbgit.model.Config;
 import com.dbgit.util.ConfigUtils;
 import com.dbgit.util.DatabaseUtils;
 import com.dbgit.util.CommitUtils;
+import com.dbgit.util.HEADUtils;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -46,6 +47,9 @@ public class CommitCommand implements Runnable {
 
             CommitUtils.saveCommitMetadata(commitDir, message);
             System.out.println("Commit created: " + commitId);
+            HEADUtils.updateHead(commitId);
+            System.out.println("Commit created: " + commitId + " (HEAD updated for "
+                    + ConfigUtils.getActiveDatabase() + ")");
 
         } catch (Exception e) {
             throw new RuntimeException("Commit failed: " + e.getMessage(), e);

@@ -52,4 +52,19 @@ public class CommitUtils {
                 .replaceAll("[^a-z0-9-_]", "_")
                 .replaceAll("_+", "_");  // Avoid multiple consecutive underscores
     }
+
+    public static Path getCommitDir(String dbName, String commitId) {
+        Path dbCommitsDir = Paths.get(".dbgit/commits", dbName);
+
+        try {
+            return Files.list(dbCommitsDir)
+                    .filter(Files::isDirectory)
+                    .filter(p -> p.getFileName().toString().startsWith(commitId + "_"))
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException("Commit not found: " + commitId));
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to locate commit directory: " + e.getMessage(), e);
+        }
+    }
+
 }

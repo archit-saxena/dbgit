@@ -97,4 +97,56 @@ public class DatabaseUtils {
 
         return jsonArray.toString(2);  // Pretty-print with 2-space indentation
     }
+
+    public static void restoreSchema(Config.Database db, String tableName, String sql) {
+        String url = buildJdbcUrl(db);
+        try (Connection conn = DriverManager.getConnection(url, db.user, db.password);
+             Statement stmt = conn.createStatement()) {
+
+            stmt.execute("SET FOREIGN_KEY_CHECKS=0");       // Disable FKs
+            stmt.execute("DROP TABLE IF EXISTS " + tableName); // Drop table if exists
+            stmt.execute(sql);                              // Recreate table
+            stmt.execute("SET FOREIGN_KEY_CHECKS=1");      // Re-enable FKs
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to restore schema for table " + tableName + ": " + e.getMessage(), e);
+        }
+    }
+
+    public static void restoreData(Config.Database db, String table, String jsonData) {
+        String url = buildJdbcUrl(db);
+        JSONArray rows = new JSONArray(jsonData);
+
+        try (Connection conn = DriverManager.getConnection(url, db.user, db.password)) {
+            conn.setAutoCommit(false);
+
+            for (int i = 0; i < rows.length(); i++) {
+                JSONObject row = rows.getJSONObject(i);
+                StringBuilder cols = new StringBuilder();
+                StringBuilder vals = new StringBuilder();
+
+                for (String key : row.keySet()) {
+                    cols.append(key).append(",");
+                    vals.append("?,");
+                }
+
+                String sql = "INSERT INTO " + table +
+                        "(" + cols.substring(0, cols.length() - 1) + ") " +
+                        "VALUES (" + vals.substring(0, vals.length() - 1) + ")";
+
+                try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                    int idx = 1;
+                    for (String key : row.keySet()) {
+                        pstmt.setObject(idx++, row.get(key));
+                    }
+                    pstmt.executeUpdate();
+                }
+            }
+
+            conn.commit();
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to restore data for table " + table + ": " + e.getMessage(), e);
+        }
+    }
+
 }

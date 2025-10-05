@@ -23,6 +23,14 @@ public class ConfigUtils {
         yaml = new Yaml(options);
     }
 
+    public static String getActiveDatabase() {
+        Config config = readConfig();
+        if (config.database == null || config.database.name == null || config.database.name.isEmpty()) {
+            throw new RuntimeException("Active database not set in config.yaml");
+        }
+        return config.database.name;
+    }
+
     public static Config readConfig() {
         try {
             String content = Files.readString(CONFIG_PATH);

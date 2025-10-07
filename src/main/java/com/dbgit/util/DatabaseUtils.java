@@ -35,7 +35,6 @@ public class DatabaseUtils {
     }
 
     public static boolean databaseExists(String dbName) {
-        Config.Database db = ConfigUtils.getDatabaseConfig();
         String sql = "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name = ?";
 
         try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {

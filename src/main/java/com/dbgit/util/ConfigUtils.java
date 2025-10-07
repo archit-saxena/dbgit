@@ -30,6 +30,9 @@ public class ConfigUtils {
 
     public static Config readConfig() {
         try {
+            if (!Files.exists(CONFIG_PATH)) {
+                return Config.createEmpty();
+            }
             String content = Files.readString(CONFIG_PATH);
             return yaml.loadAs(content, Config.class);
         } catch (IOException e) {

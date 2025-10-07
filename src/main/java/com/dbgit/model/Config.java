@@ -27,6 +27,10 @@ public class Config {
         instance = ConfigUtils.readConfig();
     }
 
+    public static Config createEmpty() {
+        return new Config();
+    }
+
     public static class Database {
         public String host;
         public int port;
